@@ -65,28 +65,38 @@ void *doit(void *_fd)
     read_requesthdrs(&rio);                              //line:netp:doit:readrequesthdrs
 
     /* Parse URI from GET request */
+	fprintf(stderr,"URI: %s \n",uri);
+	fprintf(stderr,"FILENAME: %s \n",filename);
     is_static = parse_uri(uri, filename, cgiargs);       //line:netp:doit:staticcheck
-    if (stat(filename, &sbuf) < 0) {                     //line:netp:doit:beginnotfound
-	clienterror(fd, filename, "404", "Not found",
-		    "Tiny couldn't find this file");
-	goto ext;
-    }                                                    //line:netp:doit:endnotfound
+	fprintf(stderr,"URI: %s \n",uri);
+	fprintf(stderr,"FILENAME: %s \n",filename);
+    if (is_static) { /* Serve static content */         
+    	if (stat(filename, &sbuf) < 0 ) {                     //line:netp:doit:beginnotfound
+			clienterror(fd, filename, "404", "Not found",
+		    	"Tiny couldn't find this file");
+			goto ext;
+    	}                                                    //line:netp:doit:endnotfound
 
-    if (is_static) { /* Serve static content */          
-	if (!(S_ISREG(sbuf.st_mode)) || !(S_IRUSR & sbuf.st_mode)) { //line:netp:doit:readable
-	    clienterror(fd, filename, "403", "Forbidden",
-			"Tiny couldn't read the file");
-		goto ext;
-	}
-	serve_static(fd, filename, sbuf.st_size);        //line:netp:doit:servestatic
+		if (!(S_ISREG(sbuf.st_mode)) || !(S_IRUSR & sbuf.st_mode)) { //line:netp:doit:readable
+	    	clienterror(fd, filename, "403", "Forbidden",
+				"Tiny couldn't read the file");
+			goto ext;
+		}
+		serve_static(fd, filename, sbuf.st_size);        //line:netp:doit:servestatic
     }
     else { /* Serve dynamic content */
-	if (!(S_ISREG(sbuf.st_mode)) || !(S_IXUSR & sbuf.st_mode)) { //line:netp:doit:executable
-	    clienterror(fd, filename, "403", "Forbidden",
-			"Tiny couldn't run the CGI program");
-		goto ext;
-	}
-	serve_dynamic(fd, filename, cgiargs);            //line:netp:doit:servedynamic
+    	if (stat(filename, &sbuf) < 0 ) {                     //line:netp:doit:beginnotfound
+   
+			clienterror(fd, filename, "404", "Not found",
+			    "Tiny couldn't find this file");
+			goto ext;
+ 	    }                                                 //line:netp:doit:endnotfound
+		if (!(S_ISREG(sbuf.st_mode)) || !(S_IXUSR & sbuf.st_mode)) { //line:netp:doit:executable
+	    	clienterror(fd, filename, "403", "Forbidden",
+				"Tiny couldn't run the CGI program");
+			goto ext;
+		}
+		serve_dynamic(fd, filename, cgiargs);            //line:netp:doit:servedynamic
     }
     ext:
     Close(fd);
@@ -119,26 +129,30 @@ void read_requesthdrs(rio_t *rp)
 int parse_uri(char *uri, char *filename, char *cgiargs) 
 {
     char *ptr;
-
+	struct stat sbuf;
     if (!strstr(uri, "cgi-bin")) {  /* Static content */ //line:netp:parseuri:isstatic
-	strcpy(cgiargs, "");                             //line:netp:parseuri:clearcgi
-	strcpy(filename, ".");                           //line:netp:parseuri:beginconvert1
-	strcat(filename, uri);                           //line:netp:parseuri:endconvert1
-	if (uri[strlen(uri)-1] == '/')                   //line:netp:parseuri:slashcheck
-	    strcat(filename, "home.html");               //line:netp:parseuri:appenddefault
-	return 1;
+		strcpy(cgiargs, "");                             //line:netp:parseuri:clearcgi
+		strcpy(filename, ".");                           //line:netp:parseuri:beginconvert1
+		strcat(filename, uri);                           //line:netp:parseuri:endconvert1
+		if (uri[strlen(uri)-1] == '/')                   //line:netp:parseuri:slashcheck
+		    strcat(filename, "index.html");               //line:netp:parseuri:appenddefault
+		return 1;
     }
     else {  /* Dynamic content */                        //line:netp:parseuri:isdynamic
-	ptr = index(uri, '?');                           //line:netp:parseuri:beginextract
-	if (ptr) {
-	    strcpy(cgiargs, ptr+1);
-	    *ptr = '\0';
-	}
-	else 
-	    strcpy(cgiargs, "");                         //line:netp:parseuri:endextract
-	strcpy(filename, ".");                           //line:netp:parseuri:beginconvert2
-	strcat(filename, uri);                           //line:netp:parseuri:endconvert2
-	return 0;
+		ptr = index(uri, '?');                           //line:netp:parseuri:beginextract
+		if (ptr) {
+		    strcpy(cgiargs, ptr+1);
+		    *ptr = '\0';
+		}
+		else 
+		    strcpy(cgiargs, "");                         //line:netp:parseuri:endextract
+		strcpy(filename, ".");                           //line:netp:parseuri:beginconvert2
+		strcat(filename, uri);                           //line:netp:parseuri:endconvert2
+		if(stat(filename,&sbuf)<0){
+			strcpy(filename,"/bin/");
+			strcpy(filename+5,filename+10);
+		}
+		return 0;
     }
 }
 /* $end parse_uri */
@@ -234,3 +248,4 @@ void clienterror(int fd, char *cause, char *errnum,
     Rio_writen(fd, body, strlen(body));
 }
 /* $end clienterror */
+
