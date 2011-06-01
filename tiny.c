@@ -5,7 +5,7 @@
  */
 #include "csapp.h"
 
-void doit(int fd);
+void *doit(void *_fd);
 void read_requesthdrs(rio_t *rp);
 int parse_uri(char *uri, char *filename, char *cgiargs);
 void serve_static(int fd, char *filename, int filesize);
@@ -18,20 +18,23 @@ int main(int argc, char **argv)
 {
     int listenfd, connfd, port, clientlen;
     struct sockaddr_in clientaddr;
-
+    pthread_t thread_t;
+	pthread_attr_t attr;
+	pthread_attr_init(&attr);
+	pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
     /* Check command line args */
     if (argc != 2) {
 	fprintf(stderr, "usage: %s <port>\n", argv[0]);
 	exit(1);
     }
     port = atoi(argv[1]);
-
     listenfd = Open_listenfd(port);
     while (1) {
 	clientlen = sizeof(clientaddr);
 	connfd = Accept(listenfd, (SA *)&clientaddr, &clientlen); //line:netp:tiny:accept
-	doit(connfd);                                             //line:netp:tiny:doit
-	Close(connfd);                                            //line:netp:tiny:close
+	fprintf(stderr,"%d",connfd);
+	if(pthread_create(&thread_t, &attr, doit, (void *)connfd) < 0)
+		perror("thread create error");
     }
 }
 /* $end tinymain */
@@ -40,14 +43,16 @@ int main(int argc, char **argv)
  * doit - handle one HTTP request/response transaction
  */
 /* $begin doit */
-void doit(int fd) 
+void *doit(void *_fd) 
 {
+	int fd = (int)_fd;
     int is_static;
     struct stat sbuf;
     char buf[MAXLINE], method[MAXLINE], uri[MAXLINE], version[MAXLINE];
     char filename[MAXLINE], cgiargs[MAXLINE];
     rio_t rio;
-  
+    fprintf(stderr," %d\n",fd);
+ 
     /* Read request line and headers */
     Rio_readinitb(&rio, fd);
     Rio_readlineb(&rio, buf, MAXLINE);                   //line:netp:doit:readrequest
@@ -55,7 +60,7 @@ void doit(int fd)
     if (strcasecmp(method, "GET")) {                     //line:netp:doit:beginrequesterr
        clienterror(fd, method, "501", "Not Implemented",
                 "Tiny does not implement this method");
-        return;
+       goto ext;
     }                                                    //line:netp:doit:endrequesterr
     read_requesthdrs(&rio);                              //line:netp:doit:readrequesthdrs
 
@@ -64,14 +69,14 @@ void doit(int fd)
     if (stat(filename, &sbuf) < 0) {                     //line:netp:doit:beginnotfound
 	clienterror(fd, filename, "404", "Not found",
 		    "Tiny couldn't find this file");
-	return;
+	goto ext;
     }                                                    //line:netp:doit:endnotfound
 
     if (is_static) { /* Serve static content */          
 	if (!(S_ISREG(sbuf.st_mode)) || !(S_IRUSR & sbuf.st_mode)) { //line:netp:doit:readable
 	    clienterror(fd, filename, "403", "Forbidden",
 			"Tiny couldn't read the file");
-	    return;
+		goto ext;
 	}
 	serve_static(fd, filename, sbuf.st_size);        //line:netp:doit:servestatic
     }
@@ -79,10 +84,13 @@ void doit(int fd)
 	if (!(S_ISREG(sbuf.st_mode)) || !(S_IXUSR & sbuf.st_mode)) { //line:netp:doit:executable
 	    clienterror(fd, filename, "403", "Forbidden",
 			"Tiny couldn't run the CGI program");
-	    return;
+		goto ext;
 	}
 	serve_dynamic(fd, filename, cgiargs);            //line:netp:doit:servedynamic
     }
+    ext:
+    Close(fd);
+    return 0;
 }
 /* $end doit */
 
