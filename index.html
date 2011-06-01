@@ -1,0 +1,48 @@
+<html>
+<script type="text/javascript" src="jquery-1.6.1.min.js"></script>
+<script type="text/javascript">
+function shell(){
+	var method = $(":input:radio[name=method]:checked").val();
+	var cmd = $(":input:text").val()+"\r\n";
+	$.ajax({
+		type: method,
+		url: "/cgi-bin/shell",
+		data: cmd,
+		success: function(html){
+			$("#shell").append("<pre>"+html+"</pre>");
+			var objDiv = document.getElementById("shell");
+			objDiv.scrollTop = objDiv.scrollHeight;
+			$(":input:text").val('');
+
+		}
+	});
+}
+$(":input:text").keyup(function(e){
+	if(e.keyCode == 13) {
+		shell();
+	}
+)
+</script>
+<link rel="stylesheet" type="text/css" href="webshell.css" />
+<title>Web Shell</title>
+<body>
+<div class="webshell">
+	<div class="header">
+		<div class="info">
+			<div class="subject">2011 Spring CS230 System Programming</div>
+			<div class="project">Project #3. Web Shell</div>
+			<div class="madeby">made by 20100233 Minkyu Kim</div>
+		</div>
+		<div class="method">Select Method</div>
+		<div class="radio">POST<input type="radio" name="method" value="POST" checked>GET<input type="radio" name="method" value="GET"></div>
+	</div>
+	<div class="shell" id="shell">
+	</div>
+	<div class="command">
+		<div class="inputbox" id="shell_command"><input type="text"></div>
+		<div class="submit"><input type="button" onclick="shell()"></div>
+		
+	</div>
+</div>
+</body>
+</html>

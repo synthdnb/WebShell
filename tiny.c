@@ -57,7 +57,7 @@ void *doit(void *_fd)
     Rio_readinitb(&rio, fd);
     Rio_readlineb(&rio, buf, MAXLINE);                   //line:netp:doit:readrequest
     sscanf(buf, "%s %s %s", method, uri, version);       //line:netp:doit:parserequest
-    if (strcasecmp(method, "GET")) {                     //line:netp:doit:beginrequesterr
+    if (strcasecmp(method, "GET") && strcasecmp(method,"POST")) {     //line:netp:doit:beginrequesterr
        clienterror(fd, method, "501", "Not Implemented",
                 "Tiny does not implement this method");
        goto ext;
@@ -68,6 +68,11 @@ void *doit(void *_fd)
 	fprintf(stderr,"URI: %s \n",uri);
 	fprintf(stderr,"FILENAME: %s \n",filename);
     is_static = parse_uri(uri, filename, cgiargs);       //line:netp:doit:staticcheck
+    if(!strcasecmp(method,"POST")){
+    	Rio_readlineb(&rio, cgiargs, MAXLINE);
+    	cgiargs[strlen(cgiargs)-2]=0;
+	}
+	fprintf(stderr,"ARG: %s \n",cgiargs);
 	fprintf(stderr,"URI: %s \n",uri);
 	fprintf(stderr,"FILENAME: %s \n",filename);
     if (is_static) { /* Serve static content */         
@@ -117,6 +122,7 @@ void read_requesthdrs(rio_t *rp)
 	Rio_readlineb(rp, buf, MAXLINE);
 	printf("%s", buf);
     }
+
     return;
 }
 /* $end read_requesthdrs */
@@ -130,6 +136,7 @@ int parse_uri(char *uri, char *filename, char *cgiargs)
 {
     char *ptr;
 	struct stat sbuf;
+	int i;
     if (!strstr(uri, "cgi-bin")) {  /* Static content */ //line:netp:parseuri:isstatic
 		strcpy(cgiargs, "");                             //line:netp:parseuri:clearcgi
 		strcpy(filename, ".");                           //line:netp:parseuri:beginconvert1
@@ -143,6 +150,12 @@ int parse_uri(char *uri, char *filename, char *cgiargs)
 		if (ptr) {
 		    strcpy(cgiargs, ptr+1);
 		    *ptr = '\0';
+		    for(i=0;i<strlen(cgiargs);i++){
+		    	if(cgiargs[i] == 37){
+		    		cgiargs[i]=(cgiargs[i+1]-'0')*16+(cgiargs[i+2]-'0');
+		    		strcpy(cgiargs+i+1,cgiargs+i+3);
+				}
+			}
 		}
 		else 
 		    strcpy(cgiargs, "");                         //line:netp:parseuri:endextract

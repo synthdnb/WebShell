@@ -1,0 +1,90 @@
+.webshell{
+	font-family:consolas
+}
+.header{
+	width: 100%;
+	height: 10%;
+	background: blue;
+}
+.header .info{
+	width: 70%; 
+	height: 100%;
+	float: left;
+	border: 0px solid white;
+	background: black;
+}
+.header .info .subject{
+	width: 100%; 
+	height: 50%;
+	float: left;
+	border: 0px solid white;
+	background: red;
+}
+.header .info .project{
+	width: 50%; 
+	height: 50%;
+	float: left;
+	border: 0px solid white;
+	background: green;
+}
+.header .info .madeby{
+	width: 50%; 
+	height: 50%;
+	float: right;
+	border: 0px solid white;
+	background: teal;
+}
+.header .method{
+	width: 30%; 
+	height: 50%;
+	float: right;
+	border: 0px solid white;
+	background: yellow;
+}
+.header .radio{
+	width: 30%; 
+	height: 50%;
+	float: right;
+	border: 0px solid white;
+	background: blue;
+}
+.shell{
+	width: 100%; 
+	height: 80%;
+	float: left;
+	border: 0px solid white;
+	background: white;
+	overflow: auto;
+}
+.command{
+	width: 100%; 
+	height: 10%;
+	float: left;
+	border: 0px solid white;
+	background: black;
+}
+.inputbox{
+	width: 70%; 
+	height: 100%;
+	float: left;
+	border: 0px solid white;
+	background: red;
+}
+
+.inputbox input[type=text]{
+	width: 100%;
+	height: 100%;
+}
+
+.submit{
+	width: 30%; 
+	height: 100%;
+	float: right;
+	border: 0px solid white;
+	background: blue;
+}
+
+.submit input[type=button]{
+	width: 100%;
+	height: 100%;
+}
